@@ -23,6 +23,7 @@ class Subtitle:
         filepath: Union[str, os.PathLike],
         removing_effects: bool = False,
         remove_duplicates: bool = False,
+        skip_line: bool = False,
     ):
         if not isfile(filepath):
             raise FileNotFoundError(f'"{filepath}" does not exist')
@@ -36,6 +37,7 @@ class Subtitle:
         self.dialogues: List = []
         self.removing_effects = removing_effects
         self.is_remove_duplicates = remove_duplicates
+        self.skip_line = skip_line
 
     def get_text(self) -> str:
         """
@@ -64,12 +66,10 @@ class Subtitle:
         We're clearing the text from unnecessary tags.
 
         :param raw_text: Dialog text with whitespace characters
-        :return: Dialog text without whitespaces and with the right move to a new line
+        :return: Dialog text without whitespaces
         """
-
-        text = raw_text.replace(r"\h", "\xa0").strip()
-        line_text = text.split(r"\N")
-        return "\n".join(item.strip() for item in line_text).strip()
+        text = raw_text.replace(r"\h", "\xa0")
+        return text
 
     @staticmethod
     def merged_dialogues(dialogues: List) -> List[Tuple[str, str, str]]:
@@ -140,4 +140,12 @@ class Subtitle:
             out_path = os.path.join(path.parent, file)
         with open(out_path, encoding=encoding, mode="w") as writer:
             for dialogue in self.dialogues:
-                writer.write(str(dialogue))
+                text = dialogue.text
+                if not self.skip_line:
+                    text = text.replace("\n", r"\N")  # Replace newline with \N to maintain the original line breaks
+                writer.write(str(dialogue.index))
+                writer.write("\n")
+                writer.write(f"{dialogue.start} --> {dialogue.end}")
+                writer.write("\n")
+                writer.write(text)
+                writer.write("\n\n")
